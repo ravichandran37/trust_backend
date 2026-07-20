@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Donation {
+  id            String   @id @default(uuid())
+  name          String
+  email         String
+  phone         String?
+  pan           String?
+  amount        Float
+  frequency     String
+  paymentMethod String
+  date          DateTime @default(now())
+  campaignId    String
+  campaignName  String
+}
+
+model Query {
+  id         String   @id @default(uuid())
+  name       String
+  email      String
+  subject    String
+  message    String
+  date       DateTime @default(now())
+  status     String   @default("Pending")
+  category   String
+  reply      String?
+  replyDate  DateTime?
+}
+
+model Campaign {
+  id          String   @id
+  name        String
+  target      Float
+  raised      Float    @default(0)
+  category    String
+  description String
+}
+
+model GalleryCategory {
+  id    String @id
+  label String
+}
+
+model GalleryItem {
+  id          Int      @id @default(autoincrement())
+  src         String
+  category    String
+  title       String
+  date        String?
+  description String?
+}
+
+model Service {
+  id              String   @id
+  category        String
+  title           String
+  shortDesc       String
+  longDesc        String
+  metric          String
+  image           String
+  icon            String
+  subProjects     String[]
+  impactTestimony String?
+}
+
+model MenuOption {
+  id       String @id @default(uuid())
+  category String
+  label    String
+  linkId   String
+}
+
+model PageContent {
+  id        String   @id // linkId (e.g., 'board-members')
+  title        String
+  content      String
+  heroImage    String?
+  contentImage String?
+  updatedAt    DateTime @default(now()) @updatedAt
+}
+
+model BoardMember {
+  id        String   @id @default(uuid())
+  name      String
+  role      String
+  photo     String?
+  createdAt DateTime @default(now())
+}
