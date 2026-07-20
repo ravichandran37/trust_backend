@@ -262,7 +262,11 @@ app.get('/api/services', async (req, res) => {
 
 app.post('/api/services', authenticateToken, async (req, res) => {
   try {
-    const svc = await prisma.service.create({ data: req.body });
+    const data = req.body;
+    if (!data.id && data.title) {
+      data.id = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    }
+    const svc = await prisma.service.create({ data });
     res.status(201).json(svc);
   } catch (err) {
     res.status(500).json({ error: err.message });
