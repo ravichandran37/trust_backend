@@ -4,6 +4,46 @@ const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 const path = require('path');
 const multer = require('multer');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey_change_in_production';
+
+// JWT Middleware
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Access denied, token missing' });
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ error: 'Invalid token' });
+    req.user = user;
+    next();
+  });
+}
+
+// --- AUTHENTICATION ---
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const admin = await prisma.admin.findUnique({ where: { email } });
+    
+    if (!admin) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const isMatch = await bcrypt.compare(password, admin.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ id: admin.id, email: admin.email }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({ token, email: admin.email });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 const prisma = new PrismaClient();
 const app = express();
@@ -33,7 +73,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // --- UPLOAD ENDPOINT ---
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', authenticateToken,, upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file provided' });
   }
@@ -82,7 +122,7 @@ app.post('/api/queries', async (req, res) => {
   }
 });
 
-app.patch('/api/queries/:id/reply', async (req, res) => {
+app.patch('/api/queries/:id/reply', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     const { reply } = req.body;
@@ -110,7 +150,7 @@ app.get('/api/campaigns', async (req, res) => {
   }
 });
 
-app.patch('/api/campaigns/:id', async (req, res) => {
+app.patch('/api/campaigns/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     const { target } = req.body;
@@ -134,7 +174,7 @@ app.get('/api/gallery-categories', async (req, res) => {
   }
 });
 
-app.post('/api/gallery-categories', async (req, res) => {
+app.post('/api/gallery-categories', authenticateToken,, async (req, res) => {
   try {
     const cat = await prisma.galleryCategory.create({ data: req.body });
     res.status(201).json(cat);
@@ -143,7 +183,7 @@ app.post('/api/gallery-categories', async (req, res) => {
   }
 });
 
-app.put('/api/gallery-categories/:id', async (req, res) => {
+app.put('/api/gallery-categories/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     const cat = await prisma.galleryCategory.update({
@@ -156,7 +196,7 @@ app.put('/api/gallery-categories/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/gallery-categories/:id', async (req, res) => {
+app.delete('/api/gallery-categories/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.galleryCategory.delete({ where: { id } });
@@ -176,7 +216,7 @@ app.get('/api/gallery-items', async (req, res) => {
   }
 });
 
-app.post('/api/gallery-items', async (req, res) => {
+app.post('/api/gallery-items', authenticateToken,, async (req, res) => {
   try {
     const item = await prisma.galleryItem.create({ data: req.body });
     res.status(201).json(item);
@@ -185,7 +225,7 @@ app.post('/api/gallery-items', async (req, res) => {
   }
 });
 
-app.put('/api/gallery-items/:id', async (req, res) => {
+app.put('/api/gallery-items/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     const item = await prisma.galleryItem.update({
@@ -198,7 +238,7 @@ app.put('/api/gallery-items/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/gallery-items/:id', async (req, res) => {
+app.delete('/api/gallery-items/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.galleryItem.delete({ where: { id: parseInt(id) } });
@@ -218,7 +258,7 @@ app.get('/api/services', async (req, res) => {
   }
 });
 
-app.post('/api/services', async (req, res) => {
+app.post('/api/services', authenticateToken,, async (req, res) => {
   try {
     const svc = await prisma.service.create({ data: req.body });
     res.status(201).json(svc);
@@ -227,7 +267,7 @@ app.post('/api/services', async (req, res) => {
   }
 });
 
-app.put('/api/services/:id', async (req, res) => {
+app.put('/api/services/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     const svc = await prisma.service.update({
@@ -240,7 +280,7 @@ app.put('/api/services/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/services/:id', async (req, res) => {
+app.delete('/api/services/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.service.delete({ where: { id } });
@@ -260,7 +300,7 @@ app.get('/api/menu-options', async (req, res) => {
   }
 });
 
-app.post('/api/menu-options', async (req, res) => {
+app.post('/api/menu-options', authenticateToken,, async (req, res) => {
   try {
     const option = await prisma.menuOption.create({ data: req.body });
     res.status(201).json(option);
@@ -269,7 +309,7 @@ app.post('/api/menu-options', async (req, res) => {
   }
 });
 
-app.put('/api/menu-options/:id', async (req, res) => {
+app.put('/api/menu-options/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     const option = await prisma.menuOption.update({
@@ -282,7 +322,7 @@ app.put('/api/menu-options/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/menu-options/:id', async (req, res) => {
+app.delete('/api/menu-options/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.menuOption.delete({ where: { id } });
@@ -305,7 +345,7 @@ app.get('/api/pages/:id', async (req, res) => {
   }
 });
 
-app.put('/api/pages/:id', async (req, res) => {
+app.put('/api/pages/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content, heroImage, contentImage } = req.body;
@@ -331,7 +371,7 @@ app.get('/api/board-members', async (req, res) => {
   }
 });
 
-app.post('/api/board-members', async (req, res) => {
+app.post('/api/board-members', authenticateToken,, async (req, res) => {
   try {
     const { name, role, photo } = req.body;
     const newMember = await prisma.boardMember.create({
@@ -343,7 +383,7 @@ app.post('/api/board-members', async (req, res) => {
   }
 });
 
-app.put('/api/board-members/:id', async (req, res) => {
+app.put('/api/board-members/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, role, photo } = req.body;
@@ -357,7 +397,7 @@ app.put('/api/board-members/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/board-members/:id', async (req, res) => {
+app.delete('/api/board-members/:id', authenticateToken,, async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.boardMember.delete({ where: { id } });
