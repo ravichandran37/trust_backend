@@ -22,6 +22,13 @@ function authenticateToken(req, res, next) {
   });
 }
 
+const prisma = new PrismaClient();
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+
 // --- AUTHENTICATION ---
 app.post('/api/auth/login', async (req, res) => {
   try {
@@ -45,12 +52,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-const prisma = new PrismaClient();
-const app = express();
-const PORT = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json());
 
 // Root route to verify API is running
 app.get('/', (req, res) => {
