@@ -1,5 +1,11 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+const DEFAULT_DB_URL = "postgresql://trust_db:annaitherasaponner%402026@127.0.0.1:5432/trust_db?schema=public";
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = DEFAULT_DB_URL;
+}
+
 const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
@@ -7,7 +13,7 @@ const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey_change_in_production';
+const JWT_SECRET = process.env.JWT_SECRET || 'ponner_trust_jwt_secret_key_2026';
 
 // JWT Middleware
 function authenticateToken(req, res, next) {
@@ -25,7 +31,7 @@ function authenticateToken(req, res, next) {
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: process.env.DATABASE_URL || DEFAULT_DB_URL,
     },
   },
 });
